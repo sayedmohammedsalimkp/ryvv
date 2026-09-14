@@ -1,0 +1,15 @@
+.venv
+venv
+node_modules
+frontend
+android-app
+**/__pycache__
+*.pyc
+.env
+.env.*
+!.env.example
+.git
+.vercel
+*.zip
+backend/.venv
+backend/_preview_*

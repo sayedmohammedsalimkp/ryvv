@@ -27,7 +27,8 @@ Repo already has `backend/Dockerfile` + root `render.yaml`.
 
 1. Push latest code to GitHub
 2. [Render](https://dashboard.render.com) → **New** → **Blueprint** → pick `ryvv` repo  
-   - Or **New Web Service** → Docker → root `backend/`, Dockerfile path `./Dockerfile`
+   - Or **New Web Service** → Docker → **Root Directory** blank (repo root) → Dockerfile `./Dockerfile`  
+   - Alt: Root Directory `backend` + Dockerfile `./Dockerfile` (uses `backend/Dockerfile`)
 3. Fill env (see below). Leave `SENTRY_DSN` empty to skip Sentry.
 4. Deploy. Open `https://ryvv-api.onrender.com/health` (or your service URL) → expect `200`
 5. Free tier **sleeps** after idle; first request can take ~30–60s. Uptime ping keeps it warmer.
