@@ -44,6 +44,15 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def resolve_keys(self):
+        # Render/dashboard pastes often add trailing spaces/newlines → 401 from Supabase
+        self.SUPABASE_URL = (self.SUPABASE_URL or "").strip().rstrip("/")
+        self.SUPABASE_PUBLISHABLE_KEY = (self.SUPABASE_PUBLISHABLE_KEY or "").strip()
+        self.SUPABASE_SECRET_KEY = (self.SUPABASE_SECRET_KEY or "").strip()
+        self.SUPABASE_KEY = (self.SUPABASE_KEY or "").strip()
+        self.SUPABASE_SERVICE_ROLE_KEY = (self.SUPABASE_SERVICE_ROLE_KEY or "").strip()
+        self.TELEGRAM_BOT_TOKEN = (self.TELEGRAM_BOT_TOKEN or "").strip()
+        self.TELEGRAM_WEBHOOK_SECRET = (self.TELEGRAM_WEBHOOK_SECRET or "").strip()
+
         if not self.SUPABASE_KEY:
             self.SUPABASE_KEY = self.SUPABASE_PUBLISHABLE_KEY or "placeholder"
         if not self.SUPABASE_SERVICE_ROLE_KEY:
