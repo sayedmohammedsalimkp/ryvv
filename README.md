@@ -52,4 +52,6 @@ Open http://localhost:3000
 
 ## Go live
 
-See [`GO_LIVE.md`](GO_LIVE.md) — Sentry, rate limits, health checks, prod CORS.
+See [`GO_LIVE.md`](GO_LIVE.md) — Render API, Vercel web, rate limits, health checks, prod CORS.
+
+API deploy files: `backend/Dockerfile`, `render.yaml`.

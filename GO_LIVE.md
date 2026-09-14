@@ -21,7 +21,28 @@ Minimal production checklist that is already wired in code.
 3. Create project **ryvv-web** (Next.js) → copy DSN → frontend `NEXT_PUBLIC_SENTRY_DSN` (+ optional `SENTRY_DSN`)
 4. Trigger a test error after deploy; confirm it shows in Sentry
 
-## 2. Uptime
+## 2. Deploy API on Render (free)
+
+Repo already has `backend/Dockerfile` + root `render.yaml`.
+
+1. Push latest code to GitHub
+2. [Render](https://dashboard.render.com) → **New** → **Blueprint** → pick `ryvv` repo  
+   - Or **New Web Service** → Docker → root `backend/`, Dockerfile path `./Dockerfile`
+3. Fill env (see below). Leave `SENTRY_DSN` empty to skip Sentry.
+4. Deploy. Open `https://ryvv-api.onrender.com/health` (or your service URL) → expect `200`
+5. Free tier **sleeps** after idle; first request can take ~30–60s. Uptime ping keeps it warmer.
+
+Telegram after API is live:
+
+```
+TELEGRAM_MODE=webhook
+# set webhook to:
+https://YOUR-RENDER-HOST/api/v1/telegram/webhook
+```
+
+(Use your bot’s secret / link flow from `backend/TELEGRAM.md`.)
+
+## 3. Uptime
 
 Point a free monitor at:
 
@@ -29,17 +50,17 @@ Point a free monitor at:
 https://YOUR-API-HOST/health
 ```
 
-Expect HTTP 200 every 1–5 minutes. Alert email on failure.
+Expect HTTP 200 every 1–5 minutes. Alert email on failure. Also reduces cold starts on free Render.
 
-## 3. Env on deploy
+## 4. Env on deploy
 
-### Backend
+### Backend (Render)
 ```
 APP_ENV=production
 FRONTEND_URL=https://your-app.vercel.app
-SENTRY_DSN=https://...@o....ingest.sentry.io/...
-# + existing Supabase / Telegram / Groq
 TELEGRAM_MODE=webhook
+# + existing Supabase / Telegram / Groq from .env
+# SENTRY_DSN=   (optional)
 ```
 
 ### Frontend (Vercel)
@@ -51,13 +72,13 @@ NEXT_PUBLIC_SENTRY_DSN=https://...@o....ingest.sentry.io/...
 NEXT_PUBLIC_APP_ENV=production
 ```
 
-## 4. After deploy smoke
+## 5. After deploy smoke
 
 1. `/health` → 200  
 2. `/ready` → supabase/telegram flags look right  
 3. Login on web  
 4. Export one PDF (rate limit = 10/min)  
-5. Break something once → Sentry event appears  
+5. (Optional) Sentry test error if DSN set  
 
 ## Rate limit cheat sheet
 
@@ -70,4 +91,4 @@ NEXT_PUBLIC_APP_ENV=production
 | `POST /telegram/webhook` | 180 / minute |
 | `/health` `/ready` | 60 / minute |
 
-Limits are **in-memory per process**. One Railway/Render dyno is fine. Multi-instance later → Redis backend for SlowAPI.
+Limits are **in-memory per process**. One Render instance is fine. Multi-instance later → Redis backend for SlowAPI.
