@@ -1,4 +1,4 @@
-from app.db.supabase import get_service_client
+from app.db.supabase import execute_retry, get_service_client
 
 
 DEFAULT_CATEGORIES = [
@@ -14,7 +14,9 @@ DEFAULT_CATEGORIES = [
 
 def ensure_user_profile(user_id: str, email: str | None = None) -> dict:
     sb = get_service_client()
-    existing = sb.table("users").select("*").eq("id", user_id).limit(1).execute()
+    existing = execute_retry(
+        lambda: sb.table("users").select("*").eq("id", user_id).limit(1)
+    )
     if existing.data:
         return existing.data[0]
 
@@ -25,35 +27,43 @@ def ensure_user_profile(user_id: str, email: str | None = None) -> dict:
         "email": email,
         "currency": "INR",
     }
-    inserted = sb.table("users").upsert(row).execute()
+    inserted = execute_retry(lambda: sb.table("users").upsert(row))
     profile = (inserted.data or [row])[0]
 
     # No default accounts — only On hand until user adds one
 
-    cats = sb.table("categories").select("id").eq("user_id", user_id).limit(1).execute()
+    cats = execute_retry(
+        lambda: sb.table("categories").select("id").eq("user_id", user_id).limit(1)
+    )
     if not cats.data:
-        sb.table("categories").insert(
-            [
-                {
-                    "user_id": user_id,
-                    "name": name_,
-                    "kind": kind,
-                    "is_system": True,
-                }
-                for name_, kind in DEFAULT_CATEGORIES
-            ]
-        ).execute()
+        execute_retry(
+            lambda: sb.table("categories").insert(
+                [
+                    {
+                        "user_id": user_id,
+                        "name": name_,
+                        "kind": kind,
+                        "is_system": True,
+                    }
+                    for name_, kind in DEFAULT_CATEGORIES
+                ]
+            )
+        )
 
     return profile
 
 
 def get_user(user_id: str) -> dict:
     sb = get_service_client()
-    res = sb.table("users").select("*").eq("id", user_id).single().execute()
+    res = execute_retry(
+        lambda: sb.table("users").select("*").eq("id", user_id).single()
+    )
     return res.data
 
 
 def update_user(user_id: str, payload: dict) -> dict:
     sb = get_service_client()
-    res = sb.table("users").update(payload).eq("id", user_id).execute()
+    res = execute_retry(
+        lambda: sb.table("users").update(payload).eq("id", user_id)
+    )
     return res.data[0]

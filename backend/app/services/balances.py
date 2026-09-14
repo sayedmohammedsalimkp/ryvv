@@ -1,29 +1,10 @@
-import time
-
-from postgrest.exceptions import APIError
-
-from app.db.supabase import get_service_client
+from app.db.supabase import execute_retry, get_service_client
 
 CONTACT_TYPES = {"gave", "received", "borrowed", "lent", "settle"}
 
 
-def _is_transient(err: APIError) -> bool:
-    blob = f"{getattr(err, 'code', '')} {err}".lower()
-    return any(x in blob for x in ("504", "502", "503", "timeout", "gateway"))
-
-
 def _execute_retry(build, attempts: int = 3):
-    """Rebuild + execute; retry transient Supabase gateway errors."""
-    last: Exception | None = None
-    for i in range(attempts):
-        try:
-            return build().execute()
-        except APIError as e:
-            last = e
-            if not _is_transient(e) or i == attempts - 1:
-                raise
-            time.sleep(0.4 * (i + 1))
-    raise last  # pragma: no cover
+    return execute_retry(build, attempts=attempts)
 
 
 def fetch_balance_txns(user_id: str) -> list[dict]:
