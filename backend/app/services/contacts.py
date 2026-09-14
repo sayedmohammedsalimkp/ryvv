@@ -2,10 +2,18 @@ from datetime import datetime, timezone
 
 from app.db.supabase import get_service_client
 from app.services.activity import log_activity
-from app.services.balances import contact_balance_paise
+from app.services.balances import (
+    contact_balance_paise,
+    contact_balances_map,
+    fetch_balance_txns,
+)
 
 
-def list_contacts(user_id: str, q: str | None = None) -> list[dict]:
+def list_contacts(
+    user_id: str,
+    q: str | None = None,
+    txns: list[dict] | None = None,
+) -> list[dict]:
     sb = get_service_client()
     query = (
         sb.table("contacts")
@@ -19,10 +27,11 @@ def list_contacts(user_id: str, q: str | None = None) -> list[dict]:
     if q:
         ql = q.lower()
         rows = [r for r in rows if ql in (r.get("name") or "").lower()]
-    out = []
-    for r in rows:
-        out.append({**r, "balance_paise": contact_balance_paise(user_id, r["id"])})
-    return out
+    bals = contact_balances_map(
+        [r["id"] for r in rows],
+        txns if txns is not None else fetch_balance_txns(user_id),
+    )
+    return [{**r, "balance_paise": bals.get(r["id"], 0)} for r in rows]
 
 
 def get_contact(user_id: str, contact_id: str) -> dict | None:

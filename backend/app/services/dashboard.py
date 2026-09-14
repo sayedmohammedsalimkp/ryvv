@@ -2,7 +2,12 @@ from calendar import month_name, monthrange
 from datetime import date
 
 from app.db.supabase import get_service_client
-from app.services.balances import account_balance_paise, on_hand_paise
+from app.services.balances import (
+    account_balances_map,
+    contact_balances_map,
+    fetch_balance_txns,
+    on_hand_from_txns,
+)
 from app.services.activity import list_activity
 from app.services.contacts import list_contacts
 from app.services.transactions import list_transactions
@@ -49,10 +54,14 @@ def dashboard_summary(user_id: str) -> dict:
     accounts_raw = (
         sb.table("accounts").select("*").eq("user_id", user_id).order("name").execute()
     )
+    accounts_rows = accounts_raw.data or []
+    # One txn pull for all account + on-hand balances (avoids N+1 / Supabase 504)
+    bal_txns = fetch_balance_txns(user_id)
+    bal_by_account = account_balances_map(accounts_rows, bal_txns)
     accounts = []
     accounts_total = 0
-    for a in accounts_raw.data or []:
-        bal = account_balance_paise(user_id, a)
+    for a in accounts_rows:
+        bal = bal_by_account.get(a["id"], 0)
         accounts_total += bal
         accounts.append(
             {
@@ -63,7 +72,7 @@ def dashboard_summary(user_id: str) -> dict:
             }
         )
 
-    hand = on_hand_paise(user_id)
+    hand = on_hand_from_txns(bal_txns)
     total = accounts_total + hand
 
     # One window fetch for all month tiles (avoids 6× Supabase round-trips)
@@ -104,7 +113,7 @@ def dashboard_summary(user_id: str) -> dict:
     month_income = _sum_type(cur_txns, "income")
     month_expense = _sum_type(cur_txns, "expense")
 
-    contacts = list_contacts(user_id)
+    contacts = list_contacts(user_id, txns=bal_txns)
     get_contacts = [c for c in contacts if int(c.get("balance_paise") or 0) > 0]
     give_contacts = [c for c in contacts if int(c.get("balance_paise") or 0) < 0]
     get_contacts.sort(key=lambda c: c["balance_paise"], reverse=True)

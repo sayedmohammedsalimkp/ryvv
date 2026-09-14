@@ -1,85 +1,117 @@
+import time
+
+from postgrest.exceptions import APIError
+
 from app.db.supabase import get_service_client
 
 CONTACT_TYPES = {"gave", "received", "borrowed", "lent", "settle"}
 
 
-def contact_balance_paise(user_id: str, contact_id: str) -> int:
-    """Positive => they owe you. Negative => you owe them."""
+def _is_transient(err: APIError) -> bool:
+    blob = f"{getattr(err, 'code', '')} {err}".lower()
+    return any(x in blob for x in ("504", "502", "503", "timeout", "gateway"))
+
+
+def _execute_retry(build, attempts: int = 3):
+    """Rebuild + execute; retry transient Supabase gateway errors."""
+    last: Exception | None = None
+    for i in range(attempts):
+        try:
+            return build().execute()
+        except APIError as e:
+            last = e
+            if not _is_transient(e) or i == attempts - 1:
+                raise
+            time.sleep(0.4 * (i + 1))
+    raise last  # pragma: no cover
+
+
+def fetch_balance_txns(user_id: str) -> list[dict]:
     sb = get_service_client()
-    res = (
-        sb.table("transactions")
-        .select("type, amount, settled_at")
+    res = _execute_retry(
+        lambda: sb.table("transactions")
+        .select("type, amount, account_id, contact_id, settled_at")
         .eq("user_id", user_id)
-        .eq("contact_id", contact_id)
-        .in_("type", list(CONTACT_TYPES))
-        .execute()
     )
-    bal = 0
-    for t in res.data or []:
+    return res.data or []
+
+
+def _account_delta(typ: str, amt: int) -> int:
+    if typ in ("income", "received", "borrowed"):
+        return amt
+    if typ in ("expense", "gave", "lent"):
+        return -amt
+    return 0
+
+
+def _contact_delta(typ: str, amt: int) -> int:
+    if typ in ("lent", "gave"):
+        return amt
+    if typ in ("borrowed", "received", "settle"):
+        return -amt
+    return 0
+
+
+def account_balances_map(accounts: list[dict], txns: list[dict]) -> dict[str, int]:
+    out = {a["id"]: int(a.get("opening_balance") or 0) for a in accounts}
+    for t in txns:
+        aid = t.get("account_id")
+        if not aid or aid not in out:
+            continue
+        out[aid] += _account_delta(t["type"], int(t["amount"]))
+    return out
+
+
+def contact_balances_map(contact_ids: list[str], txns: list[dict]) -> dict[str, int]:
+    wanted = set(contact_ids)
+    out = {cid: 0 for cid in contact_ids}
+    for t in txns:
+        cid = t.get("contact_id")
+        if not cid or cid not in wanted:
+            continue
         if t.get("settled_at"):
             continue
         typ = t["type"]
-        amt = int(t["amount"])
-        if typ in ("lent", "gave"):
-            bal += amt
-        elif typ in ("borrowed", "received"):
-            bal -= amt
-        elif typ == "settle":
-            # settle amount reduces absolute outstanding toward zero from payer side:
-            # positive settle means contact paid you (reduces what they owe)
-            bal -= amt
+        if typ not in CONTACT_TYPES:
+            continue
+        out[cid] += _contact_delta(typ, int(t["amount"]))
+    return out
+
+
+def on_hand_from_txns(txns: list[dict]) -> int:
+    bal = 0
+    for t in txns:
+        if t.get("account_id"):
+            continue
+        bal += _account_delta(t["type"], int(t["amount"]))
     return bal
+
+
+def contact_balance_paise(user_id: str, contact_id: str) -> int:
+    """Positive => they owe you. Negative => you owe them."""
+    txns = fetch_balance_txns(user_id)
+    return contact_balances_map([contact_id], txns).get(contact_id, 0)
 
 
 def account_balance_paise(user_id: str, account: dict) -> int:
-    sb = get_service_client()
-    opening = int(account.get("opening_balance") or 0)
-    res = (
-        sb.table("transactions")
-        .select("type, amount")
-        .eq("user_id", user_id)
-        .eq("account_id", account["id"])
-        .execute()
-    )
-    bal = opening
-    for t in res.data or []:
-        typ = t["type"]
-        amt = int(t["amount"])
-        if typ in ("income", "received", "borrowed"):
-            bal += amt
-        elif typ in ("expense", "gave", "lent"):
-            bal -= amt
-        # settle does not change account unless linked — treat as outflow/inflow via amount sign convention:
-        # settle with account means money moved to clear debt → no personal net change if between people only
-    return bal
+    txns = fetch_balance_txns(user_id)
+    return account_balances_map([account], txns).get(account["id"], 0)
 
 
 def on_hand_paise(user_id: str) -> int:
     """Cash not linked to any account (income/expense/people txns without account_id)."""
-    sb = get_service_client()
-    res = (
-        sb.table("transactions")
-        .select("type, amount, account_id")
-        .eq("user_id", user_id)
-        .is_("account_id", "null")
-        .execute()
-    )
-    bal = 0
-    for t in res.data or []:
-        typ = t["type"]
-        amt = int(t["amount"])
-        if typ in ("income", "received", "borrowed"):
-            bal += amt
-        elif typ in ("expense", "gave", "lent"):
-            bal -= amt
-    return bal
+    return on_hand_from_txns(fetch_balance_txns(user_id))
 
 
 def total_balance_paise(user_id: str) -> int:
     sb = get_service_client()
-    accounts = sb.table("accounts").select("*").eq("user_id", user_id).execute()
-    accounts_total = sum(account_balance_paise(user_id, a) for a in (accounts.data or []))
-    return accounts_total + on_hand_paise(user_id)
+    accounts = (
+        _execute_retry(lambda: sb.table("accounts").select("*").eq("user_id", user_id)).data
+        or []
+    )
+    txns = fetch_balance_txns(user_id)
+    accounts_total = sum(account_balances_map(accounts, txns).values())
+    return accounts_total + on_hand_from_txns(txns)
 
 
 def rupees_to_paise(rupees: float) -> int:

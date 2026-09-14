@@ -1,18 +1,26 @@
 from app.db.supabase import get_service_client
 from app.services.activity import log_activity
-from app.services.balances import account_balance_paise, paise_to_rupees, rupees_to_paise
+from app.services.balances import (
+    account_balance_paise,
+    account_balances_map,
+    fetch_balance_txns,
+    paise_to_rupees,
+    rupees_to_paise,
+)
 
 
 def list_accounts(user_id: str) -> list[dict]:
     sb = get_service_client()
     res = sb.table("accounts").select("*").eq("user_id", user_id).order("name").execute()
+    rows = res.data or []
+    bals = account_balances_map(rows, fetch_balance_txns(user_id))
     out = []
-    for a in res.data or []:
+    for a in rows:
         out.append(
             {
                 **a,
                 "opening_balance_paise": int(a.get("opening_balance") or 0),
-                "balance_paise": account_balance_paise(user_id, a),
+                "balance_paise": bals.get(a["id"], 0),
             }
         )
     return out
