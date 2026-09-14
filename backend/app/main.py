@@ -22,6 +22,9 @@ logging.basicConfig(
 )
 for name in ("ryvv.telegram", "ryvv.telegram.poll", "ryvv.telegram.groq"):
     logging.getLogger(name).setLevel(logging.INFO)
+# httpx INFO logs full URLs — would leak TELEGRAM_BOT_TOKEN
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
 
 _poll_stop: asyncio.Event | None = None
 _poll_task: asyncio.Task | None = None
