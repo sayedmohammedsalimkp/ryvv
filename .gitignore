@@ -1,0 +1,46 @@
+# deps / build
+node_modules/
+.next/
+out/
+dist/
+build/
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+
+# env / secrets
+.env
+.env.*
+!.env.example
+!.env*.example
+*.pem
+*.keystore
+*.jks
+local.properties
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json
+
+# Android / Gradle
+android-app/.gradle/
+android-app/**/build/
+android-app/app/release/
+*.apk
+*.aab
+
+# archives / local dumps
+*.zip
+*.rar
+*.7z
+
+# local previews / caches
+backend/_preview_*
+frontend/.turbo/
+.vercel/

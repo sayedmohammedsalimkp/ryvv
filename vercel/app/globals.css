@@ -1,0 +1,65 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --radius-sm: calc(var(--radius) * .6);
+  --radius-md: calc(var(--radius) * .8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+}
+
+:root {
+  color-scheme: light;
+  --background: oklch(0.99 0.002 260);
+  --foreground: oklch(0.18 0.025 260);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.18 0.025 260);
+  --primary: oklch(0.55 0.23 264);
+  --primary-foreground: oklch(1 0 0);
+  --muted-foreground: oklch(0.55 0.025 260);
+  --border: oklch(0.91 0.02 260);
+  --input: oklch(0.91 0.02 260);
+  --ring: oklch(0.55 0.23 264);
+  --radius: .75rem;
+}
+
+.dark {
+  color-scheme: dark;
+  --background: oklch(0.16 0.025 260);
+  --foreground: oklch(0.98 0.005 260);
+  --card: oklch(0.2 0.025 260);
+  --card-foreground: oklch(0.98 0.005 260);
+  --muted-foreground: oklch(0.72 0.02 260);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 15%);
+}
+
+@layer base {
+  * { @apply border-border outline-ring/50; }
+  html { scroll-behavior: smooth; }
+  body { @apply bg-background text-foreground; font-family: Arial, Helvetica, sans-serif; }
+  a, button { -webkit-tap-highlight-color: transparent; }
+  button, a { cursor: pointer; }
+}
+
+.hero-glow { background: radial-gradient(circle at 78% 38%, rgba(172, 198, 255, .28), transparent 31%), linear-gradient(180deg, #fcfcfd 0%, #f8faff 100%); }
+.dark .hero-glow { background: radial-gradient(circle at 78% 38%, rgba(40, 104, 244, .17), transparent 31%), #10131b; }
+.phone-shell { background: linear-gradient(145deg, #1d2536, #0b101c); }
+.dashboard-card { transform: perspective(1200px) rotateY(-3deg) rotateX(1deg); transition: transform .5s ease; }
+.dashboard-card:hover { transform: perspective(1200px) rotateY(0deg) rotateX(0deg) translateY(-4px); }
+.join-section { background: radial-gradient(circle at 50% 20%, rgba(170, 198, 255, .28), transparent 42%); }
+.dark .join-section { background: radial-gradient(circle at 50% 20%, rgba(40, 104, 244, .18), transparent 42%); }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; } }

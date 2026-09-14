@@ -1,0 +1,160 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* Ryvv blue #0866FF → hsl(217 100% 52%) */
+  :root {
+    --background: 214 100% 98%;
+    --foreground: 222 40% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 40% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 40% 12%;
+    --primary: 217 100% 52%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 217 40% 24%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 214 60% 95%;
+    --muted-foreground: 215 16% 40%;
+    --accent: 214 100% 94%;
+    --accent-foreground: 217 100% 40%;
+    --destructive: 0 72% 41%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 32% 88%;
+    --input: 214 32% 88%;
+    --ring: 217 100% 52%;
+    --radius: 0.875rem;
+    --shadow-card: 0 12px 40px rgba(8, 102, 255, 0.1);
+
+    /* Money semantics */
+    --money-get: 154 62% 31%;
+    --money-get-soft: 152 56% 92%;
+    --money-give: 4 72% 45%;
+    --money-give-soft: 6 78% 95%;
+    --money-settled: 215 16% 40%;
+    --money-settled-soft: 214 26% 93%;
+
+    /* Telegram mockup surfaces */
+    --chat-shell: 222 45% 8%;
+    --chat-surface: 220 42% 15%;
+    --chat-bubble-out: 213 100% 80%;
+    --chat-bubble-out-foreground: 222 45% 14%;
+    --chat-bubble-in: 0 0% 100%;
+    --chat-bubble-in-foreground: 222 40% 12%;
+    --gradient-app: linear-gradient(
+      165deg,
+      hsl(214 100% 98%) 0%,
+      hsl(217 80% 96%) 40%,
+      hsl(210 60% 97%) 100%
+    );
+  }
+
+  .dark {
+    --background: 222 40% 7%;
+    --foreground: 214 40% 96%;
+    --card: 222 35% 11%;
+    --card-foreground: 214 40% 96%;
+    --popover: 222 35% 11%;
+    --popover-foreground: 214 40% 96%;
+    --primary: 217 100% 58%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 217 30% 22%;
+    --secondary-foreground: 214 40% 96%;
+    --muted: 222 28% 15%;
+    --muted-foreground: 214 16% 65%;
+    --accent: 217 40% 18%;
+    --accent-foreground: 217 100% 72%;
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 222 24% 20%;
+    --input: 222 24% 20%;
+    --ring: 217 100% 58%;
+    --shadow-card: 0 12px 40px rgba(0, 0, 0, 0.4);
+
+    /* Money semantics — lifted for dark surfaces */
+    --money-get: 152 56% 52%;
+    --money-get-soft: 154 42% 15%;
+    --money-give: 6 78% 64%;
+    --money-give-soft: 6 46% 17%;
+    --money-settled: 214 15% 66%;
+    --money-settled-soft: 217 20% 19%;
+
+    /* Telegram mockup surfaces */
+    --chat-shell: 222 48% 5%;
+    --chat-surface: 221 44% 11%;
+    --chat-bubble-out: 213 92% 74%;
+    --chat-bubble-out-foreground: 222 48% 10%;
+    --chat-bubble-in: 222 30% 18%;
+    --chat-bubble-in-foreground: 214 40% 96%;
+    --gradient-app: linear-gradient(
+      165deg,
+      hsl(222 40% 7%) 0%,
+      hsl(217 35% 10%) 50%,
+      hsl(222 40% 8%) 100%
+    );
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    min-height: 100dvh;
+  }
+}
+
+@layer utilities {
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+  .bg-app-gradient {
+    background: var(--gradient-app);
+  }
+  .text-brand-shine {
+    background-image: linear-gradient(
+      90deg,
+      #0866ff,
+      #5b9dff,
+      #0866ff
+    );
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Faint graph paper for marketing surfaces */
+  .bg-grid-faint {
+    background-image: linear-gradient(
+        hsl(var(--border) / 0.5) 1px,
+        transparent 1px
+      ),
+      linear-gradient(90deg, hsl(var(--border) / 0.5) 1px, transparent 1px);
+    background-size: 56px 56px;
+  }
+
+  /* Scroll reveal — opted out under reduced motion */
+  .reveal {
+    opacity: 0;
+    transform: translateY(18px);
+    transition:
+      opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+      transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .reveal-visible {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .reveal-visible {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
